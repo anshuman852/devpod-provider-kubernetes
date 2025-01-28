@@ -99,7 +99,7 @@ func (k *KubernetesDriver) buildPersistentVolumeClaim(
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: accessMode,
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: map[corev1.ResourceName]resource.Quantity{
 					corev1.ResourceStorage: quantity,
 				},
