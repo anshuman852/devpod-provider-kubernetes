@@ -10,7 +10,6 @@ import (
 
 	"github.com/loft-sh/devpod-provider-kubernetes/pkg/options"
 	"github.com/loft-sh/devpod/pkg/command"
-	"github.com/loft-sh/devpod/pkg/devcontainer/config"
 	"github.com/loft-sh/devpod/pkg/driver"
 	"github.com/loft-sh/log"
 	perrors "github.com/pkg/errors"
@@ -55,17 +54,6 @@ type KubernetesDriver struct {
 	Log     log.Logger
 }
 
-func (k *KubernetesDriver) FindDevContainer(ctx context.Context, workspaceId string) (*config.ContainerDetails, error) {
-	workspaceId = getID(workspaceId)
-
-	pvc, containerInfo, err := k.getDevContainerPvc(ctx, workspaceId)
-	if err != nil {
-		return nil, err
-	}
-
-	return k.infoFromObject(ctx, pvc, containerInfo)
-}
-
 func (k *KubernetesDriver) getDevContainerPvc(ctx context.Context, id string) (*corev1.PersistentVolumeClaim, *DevContainerInfo, error) {
 	// try to find pvc
 	out, err := k.buildCmd(ctx, []string{"get", "pvc", id, "--ignore-not-found", "-o", "json"}).Output()
@@ -92,44 +80,6 @@ func (k *KubernetesDriver) getDevContainerPvc(ctx context.Context, id string) (*
 	}
 
 	return pvc, containerInfo, nil
-}
-
-func (k *KubernetesDriver) infoFromObject(ctx context.Context, pvc *corev1.PersistentVolumeClaim, containerInfo *DevContainerInfo) (*config.ContainerDetails, error) {
-	if pvc == nil {
-		return nil, nil
-	}
-
-	// check pod
-	pod, err := k.waitPodRunning(ctx, pvc.Name)
-	if err != nil {
-		k.Log.Infof("Error finding pod: %v", err)
-		k.Log.Warn("If the pod does not come up automatically it is stuck in an error state. Recreate the workspace to recover from this")
-		pod = nil
-	}
-
-	// determine status
-	status := "exited"
-	if pod != nil {
-		status = "running"
-	}
-
-	// check started
-	startedAt := pvc.CreationTimestamp.String()
-	if pod != nil {
-		startedAt = pod.CreationTimestamp.String()
-	}
-
-	return &config.ContainerDetails{
-		ID:      pvc.Name,
-		Created: pvc.CreationTimestamp.String(),
-		State: config.ContainerDetailsState{
-			Status:    status,
-			StartedAt: startedAt,
-		},
-		Config: config.ContainerDetailsConfig{
-			Labels: config.ListToObject(containerInfo.Options.Labels),
-		},
-	}, nil
 }
 
 func (k *KubernetesDriver) StopDevContainer(ctx context.Context, workspaceId string) error {
