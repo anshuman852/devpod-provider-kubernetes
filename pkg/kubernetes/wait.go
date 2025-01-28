@@ -22,6 +22,7 @@ func (k *KubernetesDriver) waitPodRunning(ctx context.Context, id string) (*core
 		return nil, perrors.Wrap(err, "parse pod timeout")
 	}
 
+	started := time.Now()
 	var pod *corev1.Pod
 	err = wait.PollUntilContextTimeout(ctx, time.Second, timeoutDuration, true, func(ctx context.Context) (bool, error) {
 		var err error
@@ -40,14 +41,16 @@ func (k *KubernetesDriver) waitPodRunning(ctx context.Context, id string) (*core
 
 		// Let's print all conditions that are false to help people troubleshoot infra issues
 		condMsg := ""
-		for _, cond := range pod.Status.Conditions {
-			if cond.Status == corev1.ConditionFalse {
-				condMsg += fmt.Sprintf("Condition \"%s\" is %s\n", cond.Type, cond.Status)
-				if cond.Reason != "" {
-					condMsg += fmt.Sprintf("%s Reason: %s\n", cond.Type, cond.Reason)
-				}
-				if cond.Message != "" {
-					condMsg += fmt.Sprintf("%s Message: %s\n", cond.Type, cond.Message)
+		if time.Since(started) > 45*time.Second { // start printing conditions after a delay
+			for _, cond := range pod.Status.Conditions {
+				if cond.Status == corev1.ConditionFalse {
+					condMsg += fmt.Sprintf("Condition \"%s\" is %s\n", cond.Type, cond.Status)
+					if cond.Reason != "" {
+						condMsg += fmt.Sprintf("%s Reason: %s\n", cond.Type, cond.Reason)
+					}
+					if cond.Message != "" {
+						condMsg += fmt.Sprintf("%s Message: %s\n", cond.Type, cond.Message)
+					}
 				}
 			}
 		}
