@@ -62,12 +62,20 @@ func (k *KubernetesDriver) getInitContainers(options *driver.RunOptions, pod *co
 		securityContext = nil
 	}
 
+	resources := corev1.ResourceRequirements{}
+	if existingInitContainer != nil {
+		resources = existingInitContainer.Resources
+	}
+	if k.options.HelperResources != "" {
+		resources = parseResources(k.options.HelperResources, k.Log)
+	}
+
 	initContainer := corev1.Container{
 		Name:            InitContainerName,
 		Image:           options.Image,
 		Command:         []string{"sh"},
 		Args:            []string{"-c", strings.Join(commands, "\n") + "\n"},
-		Resources:       parseResources(k.options.HelperResources, k.Log),
+		Resources:       resources,
 		VolumeMounts:    volumeMounts,
 		SecurityContext: securityContext,
 	}
