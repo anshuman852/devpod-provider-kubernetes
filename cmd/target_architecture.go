@@ -34,6 +34,13 @@ func NewTargetArchitectureCmd() *cobra.Command {
 
 // Run runs the command logic
 func (cmd *TargetArchitectureCmd) Run(ctx context.Context, options *options.Options, log log.Logger) error {
+	// If target architecture is specified, use it directly
+	if options.TargetArchitecture != "" {
+		fmt.Println(options.TargetArchitecture)
+		return nil
+	}
+
+	// Otherwise fall back to architecture detection
 	arch, err := kubernetes.NewKubernetesDriver(options, log).TargetArchitecture(ctx, options.DevContainerID)
 	if err != nil {
 		return fmt.Errorf("get target architecture: %w", err)
