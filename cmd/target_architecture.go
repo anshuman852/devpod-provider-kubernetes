@@ -34,9 +34,13 @@ func NewTargetArchitectureCmd() *cobra.Command {
 
 // Run runs the command logic
 func (cmd *TargetArchitectureCmd) Run(ctx context.Context, options *options.Options, log log.Logger) error {
+	validArchitectures := map[string]bool{"amd64": true, "arm64": true}
 	// If target architecture is specified, use it directly
 	if options.TargetArchitecture != "" {
-		fmt.Println(options.TargetArchitecture)
+		if !validArchitectures[options.TargetArchitecture] {
+			return fmt.Errorf("invalid target architecture: %s. Supported values: amd64, arm64", options.TargetArchitecture)
+		}
+		log.Infof("Target architecture: %s", options.TargetArchitecture)
 		return nil
 	}
 
